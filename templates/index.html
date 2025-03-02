@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Similar Artists Predictor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            color: white;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .input-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        input {
+            width: 70%;
+            padding: 14px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px 0 0 8px;
+            outline: none;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        button {
+            padding: 14px 25px;
+            font-size: 16px;
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            background-color: #f57c00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        #result {
+            margin-top: 30px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .result-visible {
+            opacity: 1 !important;
+        }
+        .similar-artists {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+        .artist-tag {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .artist-tag:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #ffffff;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #ffccbc;
+            background: rgba(255, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        /* Styles for preview table */
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .preview-table th {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px;
+            text-align: left;
+        }
+        .preview-table td {
+            padding: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: left;
+        }
+        .preview-table tr:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .play-button {
+            background-color: #1DB954;
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .play-button:hover {
+            transform: scale(1.1);
+            background-color: #1ed760;
+        }
+        .audio-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .preview-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+            border-radius: 12px;
+            padding-right: 5px;
+        }
+        .preview-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .preview-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .preview-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+        }
+        .preview-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .now-playing {
+            background: rgba(29, 185, 84, 0.3);
+        }
+        
+        /* Spotify Embeds Section */
+        .spotify-embeds {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .spotify-embed-item {
+            margin-bottom: 10px;
+        }
+        .artist-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+        }
+        .artist-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Find Similar Artists</h1>
+        <p>Enter your favorite artist to discover similar musicians based on audio features and genre</p>
+        
+        <form id="artistForm">
+            <div class="input-group">
+                <input type="text" id="artist_name" placeholder="Enter your favorite artist" required>
+                <button type="submit">Find</button>
+            </div>
+        </form>
+        
+        <div class="loader" id="loader"></div>
+        <div class="error-message" id="error"></div>
+        
+        <div id="result">
+            <h2>Similar Artists</h2>
+            <div class="similar-artists" id="similar-artists-container"></div>
+            
+            <div id="spotify-tracks-container" class="spotify-embeds">
+                <!-- Spotify embeds will be added here -->
+            </div>
+            
+            <h3>Preview Tracks</h3>
+            <div class="preview-container">
+                <table class="preview-table" id="preview-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px"></th>
+                            <th>Track</th>
+                            <th>Artist</th>
+                        </tr>
+                    </thead>
+                    <tbody id="preview-table-body">
+                        <!-- Track previews will be added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global variable to store the current playing audio
+        let currentAudio = null;
+        let currentPlayingRow = null;
+        
+        document.getElementById("artistForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            
+            // Reset previous results
+            document.getElementById("result").classList.remove("result-visible");
+            document.getElementById("error").style.display = "none";
+            document.getElementById("similar-artists-container").innerHTML = "";
+            document.getElementById("preview-table-body").innerHTML = "";
+            document.getElementById("spotify-tracks-container").innerHTML = "";
+            
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            
+            // Show loader
+            document.getElementById("loader").style.display = "block";
+            
+            let artistName = document.getElementById("artist_name").value;
+            
+            fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: "artist_name=" + encodeURIComponent(artistName)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loader
+                document.getElementById("loader").style.display = "none";
+                
+                if (data.error) {
+                    // Show error
+                    const errorDiv = document.getElementById("error");
+                    errorDiv.textContent = data.error;
+                    errorDiv.style.display = "block";
+                    return;
+                }
+                
+                // Display similar artists
+                const artistsContainer = document.getElementById("similar-artists-container");
+                data.similar_artists.forEach(artist => {
+                    const artistTag = document.createElement("div");
+                    artistTag.className = "artist-tag";
+                    artistTag.textContent = artist;
+                    artistsContainer.appendChild(artistTag);
+                });
+                
+                // Add Spotify embeds
+                const spotifyContainer = document.getElementById("spotify-tracks-container");
+                
+                // First add the main artist
+                if (data.spotify_tracks && data.spotify_tracks.length > 0) {
+                    // Create a section for the original artist
+                    if (data.spotify_tracks[0]) {
+                        const mainArtistSection = document.createElement("div");
+                        mainArtistSection.className = "artist-section";
+                        mainArtistSection.innerHTML = `
+                            <h3>Your Artist: ${artistName}</h3>
+                            <iframe style="border-radius:12px" 
+                                src="https://open.spotify.com/embed/track/${data.spotify_tracks[0].track_id}?utm_source=generator" 
+                                width="100%" height="152" frameBorder="0" 
+                                allowfullscreen="" 
+                                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                                loading="lazy">
+                            </iframe>
+                        `;
+                        spotifyContainer.appendChild(mainArtistSection);
+                    }
+                    
+                    // Create a section for similar artists
+                    const similarArtistsSection = document.createElement("div");
+                    similarArtistsSection.className = "artist-section";
+                    similarArtistsSection.innerHTML = `<h3>Similar Artists</h3>`;
+                    
+                    // Add tracks for similar artists (tracks 1 to end)
+                    for (let i = 1; i < data.spotify_tracks.length; i++) {
+                        const track = data.spotify_tracks[i];
+                        if (track) {
+                            const trackEmbed = document.createElement("div");
+                            trackEmbed.className = "spotify-embed-item";
+                            trackEmbed.innerHTML = `
+                                <iframe style="border-radius:12px" 
+                                    src="https://open.spotify.com/embed/track/${track.track_id}?utm_source=generator" 
+                                    width="100%" height="152" frameBorder="0" 
+                                    allowfullscreen="" 
+                                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
+                                    loading="lazy">
+                                </iframe>
+                            `;
+                            similarArtistsSection.appendChild(trackEmbed);
+                        }
+                    }
+                    
+                    spotifyContainer.appendChild(similarArtistsSection);
+                }
+                
+                // Add preview tracks to table (keep this for backward compatibility)
+                const tableBody = document.getElementById("preview-table-body");
+                
+                if (data.preview_tracks && data.preview_tracks.length > 0) {
+                    data.preview_tracks.forEach((track, index) => {
+                        if (!track) return;
+                        
+                        const row = document.createElement("tr");
+                        row.dataset.trackUrl = track.url;
+                        row.dataset.index = index;
+                        
+                        row.innerHTML = `
+                            <td>
+                                <button class="play-button" title="Play preview">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </button>
+                            </td>
+                            <td>${track.name || 'Unknown Track'}</td>
+                            <td>${track.artist}</td>
+                        `;
+                        
+                        tableBody.appendChild(row);
+                        
+                        row.querySelector('.play-button').addEventListener('click', function() {
+                            playTrack(row, track.url);
+                        });
+                    });
+                } else {
+                    const emptyRow = document.createElement("tr");
+                    emptyRow.innerHTML = `
+                        <td colspan="3" style="text-align: center;">No preview tracks available</td>
+                    `;
+                    tableBody.appendChild(emptyRow);
+                }
+                
+                // Show results
+                document.getElementById("result").classList.add("result-visible");
+            })
+            .catch(error => {
+                document.getElementById("loader").style.display = "none";
+                console.error("Error:", error);
+                
+                const errorDiv = document.getElementById("error");
+                errorDiv.textContent = "Failed to connect to the server. Please try again.";
+                errorDiv.style.display = "block";
+            });
+        });
+        
+        function playTrack(row, trackUrl) {
+            // If there's already a track playing, stop it
+            if (currentAudio) {
+                currentAudio.pause();
+                
+                // If the same track was clicked, just pause it and reset
+                if (currentPlayingRow === row) {
+                    currentPlayingRow.classList.remove('now-playing');
+                    const playButton = currentPlayingRow.querySelector('.play-button svg');
+                    playButton.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                    currentAudio = null;
+                    currentPlayingRow = null;
+                    return;
+                }
+                
+                // Reset previous row styling
+                if (currentPlayingRow) {
+                    currentPlayingRow.classList.remove('now-playing');
+                    const playButton = currentPlayingRow.querySelector('.play-button svg');
+                    playButton.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                }
+            }
+            
+            // Create new audio
+            currentAudio = new Audio(trackUrl);
+            currentPlayingRow = row;
+            
+            // Style the current row
+            row.classList.add('now-playing');
+            const playButton = row.querySelector('.play-button svg');
+            playButton.innerHTML = '<path d="M3 2h4v20H3V2zm14 0h4v20h-4V2z"/>'; // Pause icon
+            
+            // Play the track
+            currentAudio.play();
+            
+            // When track ends, reset the button
+            currentAudio.onended = function() {
+                row.classList.remove('now-playing');
+                playButton.innerHTML = '<path d="M8 5v14l11-7z"/>';
+                currentAudio = null;
+                currentPlayingRow = null;
+            };
+        }
+    </script>
+</body>
+</html>
